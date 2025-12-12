@@ -13,7 +13,68 @@
 
       const useState = React.useState;
       const useEffect = React.useEffect;
-      
+       class FixedQueue {
+        constructor(max) { 
+          this.max = max;
+          this.data = [];
+        }
+        push(x) {
+          this.data.push(x);
+          if (this.data.length > this.max) this.data.shift();
+        }
+      }
+
+      // ***** Sparkline Function *****
+      function drawSparkline(id, data) {
+        // remove previous sparkline
+        d3.select("#" + id).selectAll("*").remove();
+
+        const width = 150;
+        const height = 40;
+
+        const svg = d3.select("#" + id)
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        const x = d3.scaleLinear()
+                    .domain([0, data.length - 1])
+                    .range([0, width]);
+
+        const y = d3.scaleLinear()
+                    .domain([d3.min(data), d3.max(data)])
+                    .range([height, 0]);
+
+        const line = d3.line()
+                       .x((d, i) => x(i))
+                       .y(d => y(d));
+
+        svg.append("path")
+           .datum(data)
+           .attr("fill", "none")
+           .attr("stroke", "steelblue")
+           .attr("stroke-width", 1)
+           .attr("d", line);
+      }
+
+      // ***** Row Component for each Stock *****
+      function StockRow({ stockState, setStockState, prices, sparkId }) {
+
+        useEffect(() => { 
+          drawSparkline(sparkId, prices.data);
+        }, [stockState.price]);
+
+        return (
+          <tr>
+            <td>{stockState.ticker}</td>
+            <td>{stockState.name}</td>
+            <td>{stockState.price}</td>
+            <td>{stockState.volume}</td>
+            <td><div id={sparkId}></div></td>
+          </tr>
+        );
+      }
+
       function App() {
 	  const [time, setTime] = useState('');
 	  useEffect(() => {
@@ -28,6 +89,31 @@
 		  <div>
 		  <h1>Server-Sent Events Demo</h1>
 		  <p>Current Time: {time}</p>
+      <table border="1" cellpadding="6">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Volume</th>
+                  <th>Sparkline</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <StockRow stockState={IBM} setStockState={setIBM}
+                          prices={prices.IBM} sparkId="sparkIBM" />
+
+                <StockRow stockState={AMZN} setStockState={setAMZN}
+                          prices={prices.AMZN} sparkId="sparkAMZN" />
+
+                <StockRow stockState={DOW} setStockState={setDOW}
+                          prices={prices.DOW} sparkId="sparkDOW" />
+
+                <StockRow stockState={NASDAQ} setStockState={setNASDAQ}
+                          prices={prices.NASDAQ} sparkId="sparkNASDAQ" />
+              </tbody>
+            </table>
 		  </div>
 	  );
       }
